@@ -2,10 +2,10 @@
 # pylint: disable=C0103
 # pylint: disable=C0325
 
-import requests
 import json
 import time
 import sys
+import requests
 import _thread
 
 """
