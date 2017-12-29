@@ -67,7 +67,7 @@ def startSender():
 def buildURI(chords_host, uri_params):
     """
     host: The CHORDS host.
-    chords_stuff: Items which will be used to build url_create.
+    uri_params: Items which will be used to build url_create.
     {
       "inst_id": "1",
       "skey": "123456",
@@ -92,7 +92,7 @@ def buildURI(chords_host, uri_params):
             chords_uri = chords_uri + "&" + var
 
     if "at" in uri_params["vars"]:
-        unix_time = chords_stuff["vars"]["at"]
+        unix_time = uri_params["vars"]["at"]
         ut = time.gmtime(unix_time)
         timetag = "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z".format(
             ut[0], ut[1], ut[2], ut[3], ut[4], ut[5])
