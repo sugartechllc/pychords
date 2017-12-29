@@ -29,8 +29,6 @@ def sendRequests(arg):
     """
     Check the queu once per second, and send any waiting URI requests.
     """
-#    global uri_queue
-#    global uri_queue_lock
 
     while True:
         # Get a uri from the queue
@@ -48,13 +46,13 @@ def sendRequests(arg):
                     # Transmit the request
                     response = requests.get(uri)
                     response.close()
-                    uri_sent = True      
+                    uri_sent = True
                     print("Sent:", uri)
-                    
+
                 except Exception as ex:
                     print (
-                        "Error in ToChords.sendRequests:", 
-                        str(ex.__class__.__name__),str(ex), ex.args)
+                        "Error in ToChords.sendRequests:",
+                        str(ex.__class__.__name__), str(ex), ex.args)
 
         else:
             # Empty queue, sleep
