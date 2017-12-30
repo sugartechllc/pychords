@@ -71,6 +71,7 @@ def buildURI(chords_host, uri_params):
     {
       "inst_id": "1",
       "skey": "123456",
+      "test": False,
       "vars": {
         "at": 1511456154,
         "lcount": 0,
@@ -86,8 +87,7 @@ def buildURI(chords_host, uri_params):
     chords_uri = "http://" + chords_host + "/measurements/url_create?"
     chords_uri = chords_uri + "instrument_id=" + uri_params["inst_id"]
     for name, value in uri_params["vars"].items():
-        # save the timetag for later; just as convention
-        if name != "at":
+        if name != "at" and name != "test":
             var = name + "=" + str(value)
             chords_uri = chords_uri + "&" + var
 
@@ -101,6 +101,10 @@ def buildURI(chords_host, uri_params):
     if "skey" in uri_params:
         if uri_params["skey"] != "":
             chords_uri = chords_uri + "&" + "key=" + str(uri_params["skey"])
+
+    if "test" in uri_params:
+        if uri_params["test"]:
+            chords_uri = chords_uri + "&" + "test"
 
     return chords_uri
 
