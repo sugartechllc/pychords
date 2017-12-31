@@ -92,10 +92,14 @@ def buildURI(chords_host, uri_params):
             chords_uri = chords_uri + "&" + var
 
     if "at" in uri_params["vars"]:
-        unix_time = uri_params["vars"]["at"]
-        ut = time.gmtime(unix_time)
-        timetag = "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z".format(
-            ut[0], ut[1], ut[2], ut[3], ut[4], ut[5])
+        time_value = uri_params["vars"]["at"]
+        # See if this is a unix time or an ISO time string
+        if type(time_value) == int:
+            ut = time.gmtime(time_value)
+            timetag = "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z".format(
+                ut[0], ut[1], ut[2], ut[3], ut[4], ut[5])
+        else:
+            time_tag = time_value
         chords_uri = chords_uri + "&at=" + timetag
 
     if "skey" in uri_params:
