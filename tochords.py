@@ -53,8 +53,8 @@ def sendRequests(arg):
                     print (
                         "Error in ToChords.sendRequests:",
                         str(ex.__class__.__name__), str(ex), ex.args)
-                        # If request is sent too often, we may get a MaxRetryError
-                        time.sleep(2)
+                    # If request is sent too often, we may get a MaxRetryError
+                    time.sleep(2)
 
         else:
             # Empty queue, sleep
