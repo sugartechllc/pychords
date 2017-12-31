@@ -99,7 +99,7 @@ def buildURI(chords_host, uri_params):
             timetag = "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z".format(
                 ut[0], ut[1], ut[2], ut[3], ut[4], ut[5])
         else:
-            time_tag = time_value
+            timetag = time_value
         chords_uri = chords_uri + "&at=" + timetag
 
     if "skey" in uri_params:
