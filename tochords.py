@@ -27,9 +27,9 @@ uri_queue_lock = _thread.allocate_lock()
 
 def sendRequests(arg):
     """
-    Check the queu once per second, and send any waiting URI requests.
+    Check the queue periodically, and send any waiting URI requests.
     """
-
+    print("tochords.sendRequests() started")
     while True:
         # Get a uri from the queue
         uri_queue_lock.acquire()
@@ -56,9 +56,10 @@ def sendRequests(arg):
                     # If request is sent too often, we may get a MaxRetryError
                     time.sleep(2)
 
-        else:
-            # Empty queue, sleep
-            time.sleep(1)
+        time.sleep(0.1)
+        sys.stdout.flush()
+        sys.stderr.flush()
+
 
 def startSender():
     """
