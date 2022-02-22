@@ -16,6 +16,12 @@ The JSON configuration file must contain at least:
       "chords_host": "chords_host.com",
       "skey": "key"
 }
+It may also contain both of the following, if using the 
+CHORDS api key authentication method:
+{
+      "api_email": "registered chords user email",
+      "api_key": "registered chords user api key"
+}
 
 It is fine to include all of the configuration
 needed by other modules (e.g. FromWxflow and WxflowDecode).
@@ -70,9 +76,13 @@ def buildURI(chords_host, uri_params):
     """
     host: The CHORDS host.
     uri_params: Items which will be used to build url_create.
+    If api_key AND api_email are provided, the CHORDS api key authentication will be used.
+    Otherwise, skey must be provided and the deprecated key method will be used.
     {
       "inst_id": "1",
       "skey": "123456",
+      "api_email": "registered chords user email", 
+      "api_key": "registered chords user api key"
       "test": False,
       "vars": {
         "at": 1511456154,
@@ -104,9 +114,14 @@ def buildURI(chords_host, uri_params):
             timetag = time_value
         chords_uri = chords_uri + "&at=" + timetag
 
-    if "skey" in uri_params:
-        if uri_params["skey"] != "":
-            chords_uri = chords_uri + "&" + "key=" + str(uri_params["skey"])
+    if ("api_email" in uri_params) and ("api_key" in uri_params):
+        if (uri_params["api_email"] != "") and (uri_params["api_key"] != ""):
+            chords_uri = chords_uri + "&" + "email=" + str(uri_params["api_email"])
+            chords_uri = chords_uri + "&" + "api_key=" + str(uri_params["api_key"])
+    else:
+        if "skey" in uri_params:
+            if uri_params["skey"] != "":
+                chords_uri = chords_uri + "&" + "key=" + str(uri_params["skey"])
 
     if "test" in uri_params:
         if uri_params["test"]:

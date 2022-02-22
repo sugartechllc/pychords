@@ -1,4 +1,6 @@
 {
     "chords_host": "chords_portal.org",
-    "skey": "key"
+    "skey": "key",
+    "api_email": "email",
+    "api_key": "api_key"
 }
