@@ -36,6 +36,7 @@ def sendRequests(arg):
     Check the queue periodically, and send any waiting URI requests.
     """
     print("tochords.sendRequests() started")
+    session = requests.session()
     while True:
         # Get a uri from the queue
         uri_queue_lock.acquire()
@@ -50,11 +51,14 @@ def sendRequests(arg):
             while not uri_sent:
                 try:
                     # Transmit the request
-                    response = requests.get(uri)
-                    response.close()
+                    response = session.get(uri, timeout=10)
                     uri_sent = True
                     print("Sent:", uri)
-
+                except requests.exceptions.Timeout as ex:
+                    print (
+                        "10s timeout in session.get(), retrying in 10s"
+                    )
+                    time.sleep(10)
                 except Exception as ex:
                     print (
                         "Error in ToChords.sendRequests:",
