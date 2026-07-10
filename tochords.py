@@ -31,44 +31,102 @@ needed by other modules (e.g. FromWxflow and WxflowDecode).
 uri_queue = []
 uri_queue_lock = _thread.allocate_lock()
 
+# Bound on a single send attempt, including DNS resolution. requests'
+# own `timeout=` argument only bounds the connect/read phases of an
+# already-open socket -- a stalled DNS lookup (e.g. a flaky Wi-Fi
+# resolver) can hang indefinitely and would never raise that timeout.
+# Each attempt runs in a throwaway thread so we can give up waiting on
+# it; a raw _thread (unlike a ThreadPoolExecutor) is never joined at
+# interpreter shutdown, so an abandoned, still-hung attempt can't block
+# the process from exiting.
+SEND_TIMEOUT = 20
+
+# After this many consecutive failures, discard the session and start a
+# fresh one, in case a pooled keep-alive connection has gone stale.
+SESSION_RESET_THRESHOLD = 5
+
+def _send(session, uri, result):
+    """Run in a throwaway thread; records the outcome in `result`."""
+    try:
+        session.get(uri, timeout=10)
+    except Exception as ex:
+        result["error"] = ex
+    result["done"] = True
+
 def sendRequests(arg):
     """
     Check the queue periodically, and send any waiting URI requests.
     """
     print("tochords.sendRequests() started")
     session = requests.session()
+    consecutive_failures = 0
     while True:
-        # Get a uri from the queue
-        uri_queue_lock.acquire()
-        if len(uri_queue):
-            uri = uri_queue.pop(0)
-        else:
-            uri = None
-        uri_queue_lock.release()
+        try:
+            # Get a uri from the queue
+            uri_queue_lock.acquire()
+            if len(uri_queue):
+                uri = uri_queue.pop(0)
+            else:
+                uri = None
+            uri_queue_lock.release()
 
-        if uri:
-            uri_sent = False
-            while not uri_sent:
-                try:
-                    # Transmit the request
-                    response = session.get(uri, timeout=10)
-                    uri_sent = True
-                    print("Sent:", uri)
-                except requests.exceptions.Timeout as ex:
-                    print (
-                        "10s timeout in session.get(), retrying in 10s"
-                    )
-                    time.sleep(10)
-                except Exception as ex:
-                    print (
-                        "Error in ToChords.sendRequests:",
-                        str(ex.__class__.__name__), str(ex), ex.args)
-                    # If request is sent too often, we may get a MaxRetryError
-                    time.sleep(2)
+            if uri:
+                uri_sent = False
+                while not uri_sent:
+                    # Transmit the request in its own thread, with a hard
+                    # ceiling on the whole attempt (see SEND_TIMEOUT above).
+                    result = {"done": False}
+                    _thread.start_new_thread(_send, (session, uri, result))
 
-        time.sleep(0.1)
-        sys.stdout.flush()
-        sys.stderr.flush()
+                    deadline = time.time() + SEND_TIMEOUT
+                    while not result["done"] and time.time() < deadline:
+                        time.sleep(0.05)
+
+                    if not result["done"]:
+                        # Give up waiting; the send thread is abandoned
+                        # and may complete (or stay stuck) on its own.
+                        print(
+                            SEND_TIMEOUT,
+                            "s timeout sending (possible stuck DNS/network), retrying in 10s"
+                        )
+                        consecutive_failures += 1
+                        time.sleep(10)
+                    elif "error" in result:
+                        ex = result["error"]
+                        print (
+                            "Error in ToChords.sendRequests:",
+                            str(ex.__class__.__name__), str(ex), ex.args)
+                        # If request is sent too often, we may get a MaxRetryError
+                        consecutive_failures += 1
+                        time.sleep(2)
+                    else:
+                        uri_sent = True
+                        consecutive_failures = 0
+                        print("Sent:", uri)
+
+                    if consecutive_failures >= SESSION_RESET_THRESHOLD:
+                        print(
+                            consecutive_failures,
+                            "consecutive send failures, recreating HTTP session"
+                        )
+                        session.close()
+                        session = requests.session()
+                        consecutive_failures = 0
+
+            time.sleep(0.1)
+            sys.stdout.flush()
+            sys.stderr.flush()
+        except Exception as ex:
+            # This thread has no supervisor: it's a raw _thread, not a
+            # systemd-monitored process, so if an exception escapes this
+            # loop (e.g. a broken stdout pipe when journald restarts),
+            # the thread silently dies and the queue is never drained
+            # again, without systemd's Restart=always ever noticing.
+            # Catch everything here so the loop always keeps running.
+            print(
+                "Unexpected error in tochords.sendRequests loop:",
+                str(ex.__class__.__name__), str(ex))
+            time.sleep(1)
 
 
 def startSender():
